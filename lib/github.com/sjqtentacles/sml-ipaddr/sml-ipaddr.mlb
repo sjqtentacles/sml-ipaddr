@@ -1,0 +1,8 @@
+(* sml-ipaddr: public library basis. Brings the Ipv4, Ipv6, and IpAddr
+   structures into scope. *)
+local
+  $(SML_LIB)/basis/basis.mlb
+in
+  ipaddr.sig
+  ipaddr.sml
+end

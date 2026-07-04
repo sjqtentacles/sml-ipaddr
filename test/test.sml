@@ -210,6 +210,47 @@ struct
       val () = checkBool "compare equal v4"
                         (true,
                          IpAddr.compare (IpAddr.V4 0w1, IpAddr.V4 0w1) = EQUAL)
+
+      (* Oversized untrusted numeric fields (IPv4 octet, IPv4/IPv6 CIDR prefix)
+         must be rejected with NONE, never raise Overflow. On this toolchain
+         MLton's Int is 32-bit and Poly/ML's is 63-bit (both fixed width; only
+         IntInf is arbitrary), so an unchecked Int.fromString would crash on
+         MLton for a value past 2^31 and diverge from Poly/ML. Inputs sit just
+         past 2^31 (2147483648) and at 12 digits so both compilers must agree. *)
+      val () = section "integer overflow (untrusted numeric input)"
+      (* A raise surfaces as a bare non-NONE sentinel so a crash is a clean FAIL
+         rather than aborting the binary. *)
+      fun raised f x = (ignore (f x); false) handle Overflow => true | _ => false
+      fun rejects f x = (case f x of SOME _ => false | NONE => true)
+                        handle _ => false
+      (* IPv4 octet just over 2^31 and 12 digits. *)
+      val () = checkBool "ipv4 octet 2147483648 -> NONE (no raise)"
+                 (true, rejects Ipv4.fromString "2147483648.0.0.1")
+      val () = checkBool "ipv4 octet 12 digits -> NONE (no raise)"
+                 (true, rejects Ipv4.fromString "999999999999.0.0.1")
+      val () = checkBool "ipv4 octet does not raise Overflow"
+                 (false, raised Ipv4.fromString "999999999999.0.0.1")
+      (* IPv4 CIDR prefix (line 92). *)
+      val () = checkBool "ipv4 CIDR prefix 2147483648 -> NONE (no raise)"
+                 (true, rejects Ipv4.Cidr.fromString "10.0.0.0/2147483648")
+      val () = checkBool "ipv4 CIDR prefix 12 digits -> NONE (no raise)"
+                 (true, rejects Ipv4.Cidr.fromString "10.0.0.0/999999999999")
+      val () = checkBool "ipv4 CIDR prefix does not raise Overflow"
+                 (false, raised Ipv4.Cidr.fromString "10.0.0.0/999999999999")
+      (* IPv6 CIDR prefix (line 363). *)
+      val () = checkBool "ipv6 CIDR prefix 2147483648 -> NONE (no raise)"
+                 (true, rejects Ipv6.Cidr.fromString "2001:db8::/2147483648")
+      val () = checkBool "ipv6 CIDR prefix 12 digits -> NONE (no raise)"
+                 (true, rejects Ipv6.Cidr.fromString "2001:db8::/999999999999")
+      val () = checkBool "ipv6 CIDR prefix does not raise Overflow"
+                 (false, raised Ipv6.Cidr.fromString "2001:db8::/999999999999")
+      (* Normal, in-range values still parse. *)
+      val () = checkBool "normal ipv4 octet still parses"
+                 (true, isSome (Ipv4.fromString "192.168.1.1"))
+      val () = checkBool "normal ipv4 CIDR still parses"
+                 (true, isSome (Ipv4.Cidr.fromString "10.0.0.0/8"))
+      val () = checkBool "normal ipv6 CIDR still parses"
+                 (true, isSome (Ipv6.Cidr.fromString "2001:db8::/32"))
     in
       ()
     end

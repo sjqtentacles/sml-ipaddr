@@ -34,6 +34,15 @@
    network address; `broadcast` sets the host bits to 1; `contains` tests
    membership. The prefix length is in bits (0..32 for v4, 0..128 for v6).
 
+   Robust numeric parsing
+   ----------------------
+   All numeric fields parsed from untrusted strings -- IPv4 octets and the
+   IPv4/IPv6 CIDR prefix length -- are range-checked via IntInf (bounded to a
+   fixed 32-bit signed range) before the tighter octet/prefix bounds are
+   applied, so an oversized value yields NONE rather than raising Overflow.
+   This keeps behaviour identical under MLton (32-bit Int) and Poly/ML (63-bit
+   Int); both are fixed width, only IntInf is arbitrary precision.
+
    Classification
    --------------
    `Ipv4.Class.t` and `Ipv6.Class.t` are enumerated:

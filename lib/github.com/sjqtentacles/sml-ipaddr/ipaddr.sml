@@ -16,6 +16,19 @@
    compressed to `::`, ties broken leftmost. IPv4-mapped addresses
    (`::ffff:a.b.c.d`) emit the lower 32 bits as dotted decimal. *)
 
+(* Parse an int from untrusted input without ever raising Overflow. On this
+   toolchain MLton's Int is 32-bit and Poly/ML's is 63-bit (both fixed width;
+   only IntInf is arbitrary), so a plain Int.fromString raises Overflow on
+   MLton for a value past 2^31 while Poly/ML would accept it: a crash and a
+   cross-compiler divergence. Parse via IntInf and bound to a fixed 32-bit
+   signed range so both compilers behave identically; callers apply their own
+   tighter range check (octet 0..255, prefix 0..32 / 0..128) afterward. *)
+fun parseIntBounded s =
+  case IntInf.fromString s of
+      SOME n => if n >= ~2147483648 andalso n <= 2147483647
+                then SOME (IntInf.toInt n) else NONE
+    | NONE => NONE
+
 structure Ipv4 : IPV4 =
 struct
   type t = Word32.word
@@ -29,7 +42,7 @@ struct
     let
       val parts = String.fields (fn c => c = #".") s
       fun parseByte p =
-        case Int.fromString p of
+        case parseIntBounded p of
             SOME n => if n >= 0 andalso n <= 255 then SOME (Word8.fromInt n)
                       else NONE
           | NONE => NONE
@@ -89,7 +102,7 @@ struct
     fun fromString s =
       case String.fields (fn c => c = #"/") s of
           [addrStr, pfxStr] =>
-            (case (outerFromString addrStr, Int.fromString pfxStr) of
+            (case (outerFromString addrStr, parseIntBounded pfxStr) of
                  (SOME a, SOME p) =>
                    if p >= 0 andalso p <= 32 then SOME { addr = a, prefix = p }
                    else NONE
@@ -360,7 +373,7 @@ struct
     fun fromString s =
       case String.fields (fn c => c = #"/") s of
           [addrStr, pfxStr] =>
-            (case (outerFromString addrStr, Int.fromString pfxStr) of
+            (case (outerFromString addrStr, parseIntBounded pfxStr) of
                  (SOME a, SOME p) =>
                    if p >= 0 andalso p <= 128 then SOME { addr = a, prefix = p }
                    else NONE

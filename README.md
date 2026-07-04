@@ -20,7 +20,15 @@ Part of the `sjqtentacles` monorepo of SML libraries.
 
 ## Status
 
-Working, tested. No dependencies beyond the Basis library.
+Working, tested (62 deterministic checks, byte-identical under MLton and
+Poly/ML). No dependencies beyond the Basis library.
+
+Numeric fields parsed from untrusted strings (IPv4 octets, IPv4/IPv6 CIDR
+prefix lengths) are range-checked via `IntInf` and bounded to a fixed 32-bit
+signed range, so an oversized value returns `NONE` instead of raising
+`Overflow`. This matters because on this toolchain MLton's `Int` is 32-bit and
+Poly/ML's is 63-bit (both fixed width; only `IntInf` is arbitrary precision),
+so an unchecked parse would crash on MLton and diverge from Poly/ML.
 
 ## Dependencies
 

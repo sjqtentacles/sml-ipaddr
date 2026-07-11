@@ -14,7 +14,8 @@
 #     named main.sml, which is skipped: by convention it only contains the
 #     MLton top-level invocation, and Poly/ML uses the exported `main`
 #     instead;
-#   - blank lines and (* ... *) comment-only lines are ignored.
+#   - blank lines and (* ... *) comments are ignored, including comment
+#     blocks spanning multiple lines (no nesting).
 #
 # The program is expected to define `main : unit -> unit`, which Poly/ML
 # exports as the executable entry point.
@@ -50,8 +51,18 @@ strip_line() {
 expand_mlb() (
     _mlb="$1"
     _dir=$(dirname "$_mlb")
+    _incomment=0
     while IFS= read -r _raw || [ -n "$_raw" ]; do
+        if [ "$_incomment" = 1 ]; then
+            case "$_raw" in
+                *'*)'*) _incomment=0; _raw=${_raw#*\*\)} ;;
+                *) continue ;;
+            esac
+        fi
         _line=$(strip_line "$_raw")
+        case "$_line" in
+            *'(*'*) _incomment=1; _line=$(strip_line "${_line%%\(\**}") ;;
+        esac
         [ -z "$_line" ] && continue
         case "$_line" in
             \$\(*) continue ;;                      # basis / path vars: skip

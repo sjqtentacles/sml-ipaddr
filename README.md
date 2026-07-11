@@ -50,6 +50,37 @@ val SOME a = IpAddr.fromString "::ffff:192.0.2.1"
 val out = IpAddr.toString a                (* "::ffff:192.0.2.1" *)
 ```
 
+## Example
+
+`make example` builds and runs [`examples/demo.sml`](examples/demo.sml), which
+parses and formats IPv4/IPv6 addresses, computes CIDR network/broadcast/
+containment, classifies addresses, and dispatches through `IpAddr` — all over
+in-memory literals, no network I/O (output is byte-identical under MLton and
+Poly/ML):
+
+```
+IPv4 parse / format / classify:
+  192.168.1.5 -> 192.168.1.5 (private)
+  8.8.8.8     -> 8.8.8.8 (public)
+
+IPv4 CIDR (192.168.1.0/24):
+  network   = 192.168.1.0
+  broadcast = 192.168.1.255
+  contains 192.168.1.200? true
+
+IPv6 parse / RFC 5952 canonical format:
+  2001:0db8:0000:...:0001 -> 2001:db8::1
+  ::ffff:192.0.2.1        -> ::ffff:192.0.2.1
+  class of ::1 = loopback
+
+IPv6 CIDR (2001:db8::/32):
+  network = 2001:db8::
+  contains 2001:db8:1::1? true
+
+IpAddr dispatch + compare:
+  192.168.1.1 vs 2001:db8::1 -> LESS
+```
+
 ## Building and testing
 
 ```sh

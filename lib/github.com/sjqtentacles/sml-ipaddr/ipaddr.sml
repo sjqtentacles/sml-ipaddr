@@ -81,15 +81,14 @@ struct
       | _ => NONE
 
   fun toString w =
-    let
-      val [b0, b1, b2, b3] = toBytes w
-    in
-      String.concatWith "."
-        [ Int.toString (Word8.toInt b0)
-        , Int.toString (Word8.toInt b1)
-        , Int.toString (Word8.toInt b2)
-        , Int.toString (Word8.toInt b3) ]
-    end
+    case toBytes w of
+        [b0, b1, b2, b3] =>
+          String.concatWith "."
+            [ Int.toString (Word8.toInt b0)
+            , Int.toString (Word8.toInt b1)
+            , Int.toString (Word8.toInt b2)
+            , Int.toString (Word8.toInt b3) ]
+      | _ => raise Fail "Ipv4.toString: impossible"
 
   (* Capture outer bindings before substructures shadow them. *)
   val outerFromString = fromString
